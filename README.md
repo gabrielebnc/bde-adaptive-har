@@ -25,7 +25,7 @@ Only this model is supported. Public documentation is under `docs/`;
 `docs/private/` is ignored. Datasets, generated runs and local environments
 are also ignored.
 
-## Setup and data
+## Setup
 
 Python 3.10 or later is required; the selected run used Python 3.12 and CPU.
 
@@ -33,6 +33,13 @@ Python 3.10 or later is required; the selected run used Python 3.12 and CPU.
 python3 -m venv .venv
 source .venv/bin/activate
 python -m pip install -r requirements.txt
+```
+
+## Dataset download and location
+
+Run this command from the repository root, with the virtual environment activated:
+
+```bash
 python -m src.data --download --data-dir data
 ```
 
@@ -44,15 +51,48 @@ including any nested dataset ZIP. It records the archive SHA-256 and source URL
 in `data/download.json`. The code consumes inertial windows, not the 561 feature
 vectors.
 
-If the archive is already extracted under `data/UCI HAR Dataset/`, no download
-is needed. For a restricted network environment, download the archive in a
-normal terminal first:
+The command downloads and extracts the dataset automatically into the repository's
+`data/` directory. The required layout is:
+
+```text
+data/
+└── UCI HAR Dataset/
+    ├── train/
+    │   ├── Inertial Signals/     # all nine *_train.txt signal files
+    │   ├── y_train.txt
+    │   └── subject_train.txt
+    └── test/
+        ├── Inertial Signals/     # all nine *_test.txt signal files
+        ├── y_test.txt
+        └── subject_test.txt
+```
+
+Keep the folder name `UCI HAR Dataset` and its train/test subdirectories intact.
+Do not flatten the extracted files or use only the 561-feature tables.
+The full `data/` directory is git-ignored; it should not be pushed to GitHub.
+
+For a manual download, use the Download button on the UCI page linked above,
+save the complete ZIP as `data/uci_har_complete.zip`, and run the preparation
+command above. It also extracts the inner dataset ZIP when the download is wrapped
+in an outer ZIP. Alternatively, download the same archive from a terminal:
 
 ```bash
 mkdir -p data
 curl -L --fail 'https://archive.ics.uci.edu/static/public/240/human%2Bactivity%2Brecognition%2Busing%2Bsmartphones.zip' -o data/uci_har_complete.zip
 python -m src.data --download --data-dir data
 ```
+
+If the archive is already fully extracted at `data/UCI HAR Dataset/`, validate
+and prepare it without downloading again:
+
+```bash
+python -m src.data --data-dir data
+```
+
+For a dataset outside this repository, pass its parent directory through
+`--data-dir` to preparation, training and evaluation. For example,
+`--data-dir /path/to/datasets` expects
+`/path/to/datasets/UCI HAR Dataset/`.
 
 Each input is a float32 window shaped `(9, 128)`; batches are `(B, 9, 128)`.
 Channel order is body acceleration x/y/z, body gyroscope x/y/z, then total
