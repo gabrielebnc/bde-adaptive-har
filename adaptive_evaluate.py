@@ -6,7 +6,7 @@ os.environ.setdefault("MPLCONFIGDIR", str(Path(__file__).parent / ".mplconfig"))
 
 import torch
 
-from src.evaluation import evaluation_parser, load_evaluation, write_csv
+from src.evaluation import artifact_directory, evaluation_parser, load_evaluation, write_csv
 from src.metrics import collect_logits, policy_metrics, threshold_sweep
 from src.model import model_summary
 from src.utils import write_json
@@ -57,7 +57,7 @@ def main():
     if not checkpoint.get("calibrated", False):
         parser.error("Checkpoint lacks validation confidence calibration; finish training first")
     temperatures = checkpoint["temperatures"]
-    output_dir = Path(args.output_dir or Path(args.checkpoint).parent / f"adaptive_{args.split}_{args.mode}")
+    output_dir = artifact_directory(args, f"adaptive_{args.split}_{args.mode}")
     metadata = {"split": args.split, "mode": args.mode, "checkpoint_epoch": checkpoint["epoch"],
                 "data_source": checkpoint["data_metadata"]["source"],
                 "temperatures": temperatures, "samples": len(loader.dataset),

@@ -4,17 +4,9 @@ from dataclasses import dataclass
 import torch
 from torch import nn
 
-# These are separate fixed architectures selected before training. Width never
-# changes at runtime; each checkpoint contains only one architecture's weights.
-MODEL_SIZES = {
-    "tiny_5k": (7, 10, 15),
-    "micro": (4, 8, 16),
-    "tiny_25k": (4, 7, 7),
-    "tiny_1k": (4, 5, 6),
-}
-STAGE_BLOCKS = {"tiny_5k": (3, 3, 1), "micro": (2, 2, 2),
-                "tiny_25k": (4, 3, 2), "tiny_1k": (2, 2, 1)}
-STEM_CHANNELS = {"tiny_1k": 1}
+DEFAULT_DROPOUTS = (0.40, 0.40, 0.10)
+STAGE_CHANNELS = (4, 7, 7)
+STAGE_BLOCK_COUNTS = (4, 3, 2)
 
 
 class ResidualBlock(nn.Module):
@@ -49,18 +41,18 @@ class AdaptiveOutput:
 
 
 class AdaptiveHAR(nn.Module):
-    def __init__(self, num_classes=6, dropouts=(0.20, 0.25, 0.30), model_size="tiny_25k",
+    def __init__(self, num_classes=6, dropouts=DEFAULT_DROPOUTS, model_size="tiny_25k",
                  final_mode="independent"):
         super().__init__()
         if len(dropouts) != 3:
             raise ValueError("Three dropout rates are required")
-        if model_size not in MODEL_SIZES:
-            raise ValueError(f"Unknown model_size {model_size!r}; choose {list(MODEL_SIZES)}")
-        if final_mode not in {"independent", "residual"}:
-            raise ValueError("final_mode must be independent or residual")
-        c1, c2, c3 = MODEL_SIZES[model_size]
-        b1, b2, b3 = STAGE_BLOCKS[model_size]
-        stem_channels = STEM_CHANNELS.get(model_size, c1)
+        # Accept the selected checkpoint's original metadata without retaining
+        # architecture switching or alternative final-head implementations.
+        if model_size != "tiny_25k" or final_mode != "independent":
+            raise ValueError("Only the selected 2,486-parameter independent-head model is supported")
+        c1, c2, c3 = STAGE_CHANNELS
+        b1, b2, b3 = STAGE_BLOCK_COUNTS
+        stem_channels = c1
         self.config = {"num_classes": num_classes, "dropouts": list(dropouts),
                        "model_size": model_size, "final_mode": final_mode}
         self.stem = nn.Sequential(nn.Conv1d(9, stem_channels, 7, 2, 3, bias=False),
@@ -74,18 +66,6 @@ class AdaptiveHAR(nn.Module):
         self.exit2 = classifier(c2, dropouts[1], num_classes)
         self.stage3 = stage(c2, c3, 2, b3)
         self.final = classifier(c3, dropouts[2], num_classes)
-        if final_mode == "residual":
-            self.reset_final_correction()
-
-    def reset_final_correction(self):
-        """Start a residual final head with exactly the Exit 2 predictions."""
-        nn.init.zeros_(self.final[-1].weight)
-        nn.init.zeros_(self.final[-1].bias)
-
-    def final_logits(self, features, exit2_logits):
-        correction = self.final(features)
-        return (exit2_logits.detach() + correction
-                if self.config["final_mode"] == "residual" else correction)
 
     def forward(self, x):
         x = self.stage1(self.stem(x))
@@ -93,7 +73,7 @@ class AdaptiveHAR(nn.Module):
         x = self.stage2(x)
         logits2 = self.exit2(x)
         x = self.stage3(x)
-        return logits1, logits2, self.final_logits(x, logits2)
+        return logits1, logits2, self.final(x)
 
     @torch.inference_mode()
     def adaptive_forward(self, x, threshold_1, threshold_2, *, temperatures=(1., 1., 1.),
@@ -130,7 +110,7 @@ class AdaptiveHAR(nn.Module):
             logits[remaining[leave]], exits[remaining[leave]] = second[leave], 2
             remaining, features = remaining[~leave], features[~leave]
             if len(remaining):
-                logits[remaining] = self.final_logits(self.stage3(features), second_logits[~leave]) / temperatures[2]
+                logits[remaining] = self.final(self.stage3(features)) / temperatures[2]
                 exits[remaining] = 3
         confidence, predictions = logits.softmax(dim=1).max(dim=1)
         return AdaptiveOutput(logits, predictions, confidence, exits)
@@ -173,9 +153,9 @@ def model_summary(model):
     return {"total_parameters": sum(p.numel() for p in model.parameters()),
             "model_size": model.config["model_size"],
             "final_mode": model.config["final_mode"],
-            "channels": list(MODEL_SIZES[model.config["model_size"]]),
+            "channels": list(STAGE_CHANNELS),
             "stem_channels": model.stem[0].out_channels,
-            "stage_blocks": list(STAGE_BLOCKS[model.config["model_size"]]),
+            "stage_blocks": list(STAGE_BLOCK_COUNTS),
             "parameter_bytes_float32": 4 * sum(p.numel() for p in model.parameters()),
             "input_shape": [1, 9, 128], "shapes": shapes, "exits": exits,
             "computation_note": "Conv1d/Linear MACs only, including earlier exit heads; FLOPs = 2 * MACs. Not measured latency or energy."}

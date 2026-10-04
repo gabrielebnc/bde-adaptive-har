@@ -1,0 +1,114 @@
+{
+  "split": "test",
+  "mode": "low-power",
+  "checkpoint_epoch": 41,
+  "data_source": "uci_har",
+  "temperatures": [
+    0.1707403063774109,
+    0.34021732211112976,
+    0.6085935235023499
+  ],
+  "samples": 2947,
+  "smoke_run": false,
+  "threshold_1": 0.98,
+  "threshold_2": null,
+  "execution": "Actual adaptive inference with remaining-batch compaction",
+  "accuracy": 0.9134713267729895,
+  "macro_f1": 0.9150986984350883,
+  "per_class": {
+    "WALKING": {
+      "precision": 0.9743589743589743,
+      "recall": 0.9959677419354839,
+      "f1": 0.9850448654037887,
+      "support": 496
+    },
+    "WALKING_UPSTAIRS": {
+      "precision": 0.9534883720930233,
+      "recall": 0.9575371549893843,
+      "f1": 0.9555084745762712,
+      "support": 471
+    },
+    "WALKING_DOWNSTAIRS": {
+      "precision": 0.9803921568627451,
+      "recall": 0.9523809523809523,
+      "f1": 0.966183574879227,
+      "support": 420
+    },
+    "SITTING": {
+      "precision": 0.771484375,
+      "recall": 0.8044806517311609,
+      "f1": 0.7876370887337986,
+      "support": 491
+    },
+    "STANDING": {
+      "precision": 0.8169291338582677,
+      "recall": 0.7800751879699248,
+      "f1": 0.7980769230769231,
+      "support": 532
+    },
+    "LAYING": {
+      "precision": 0.9962894248608535,
+      "recall": 1.0,
+      "f1": 0.9981412639405205,
+      "support": 537
+    }
+  },
+  "confusion_matrix": [
+    [
+      494,
+      2,
+      0,
+      0,
+      0,
+      0
+    ],
+    [
+      13,
+      451,
+      7,
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      20,
+      400,
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      1,
+      395,
+      93,
+      2
+    ],
+    [
+      0,
+      0,
+      0,
+      117,
+      415,
+      0
+    ],
+    [
+      0,
+      0,
+      0,
+      0,
+      0,
+      537
+    ]
+  ],
+  "confusion_matrix_axes": "rows=true labels; columns=predictions; class order=0..5",
+  "exit_percentages": {
+    "exit1": 55.20869064331055,
+    "exit2": 44.79131317138672,
+    "final": 0.0
+  },
+  "average_stages": 1.4479131698608398,
+  "average_macs": 52887.05142715454
+}

@@ -4,7 +4,7 @@ from pathlib import Path
 os.environ.setdefault("CUBLAS_WORKSPACE_CONFIG", ":4096:8")
 os.environ.setdefault("MPLCONFIGDIR", str(Path(__file__).parent / ".mplconfig"))
 
-from src.evaluation import evaluation_parser, load_evaluation, plot_confusions, write_csv
+from src.evaluation import artifact_directory, evaluation_parser, load_evaluation, plot_confusions, write_csv
 from src.metrics import EXIT_NAMES, classification_metrics, collect_logits
 from src.model import model_summary
 from src.utils import write_json
@@ -19,7 +19,7 @@ def main():
     reports = {name: {**classification_metrics(labels.numpy(), values.argmax(dim=1).numpy()),
                       **complexity, "full_model_parameters": summary["total_parameters"]}
                for name, values, complexity in zip(EXIT_NAMES, logits, summary["exits"])}
-    output_dir = Path(args.output_dir or Path(args.checkpoint).parent / f"evaluation_{args.split}")
+    output_dir = artifact_directory(args, f"evaluation_{args.split}")
     write_json(output_dir / "metrics.json", {"split": args.split, "checkpoint_epoch": checkpoint["epoch"],
                "data_source": checkpoint["data_metadata"]["source"],
                "smoke_run": checkpoint["training_config"]["max_train_batches"] is not None or checkpoint["training_config"]["max_val_batches"] is not None,

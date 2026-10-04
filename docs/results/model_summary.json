@@ -1,0 +1,74 @@
+{
+  "total_parameters": 2486,
+  "model_size": "tiny_25k",
+  "final_mode": "independent",
+  "channels": [
+    4,
+    7,
+    7
+  ],
+  "stem_channels": 4,
+  "stage_blocks": [
+    4,
+    3,
+    2
+  ],
+  "parameter_bytes_float32": 9944,
+  "input_shape": [
+    1,
+    9,
+    128
+  ],
+  "shapes": {
+    "stem": [
+      1,
+      4,
+      64
+    ],
+    "stage1": [
+      1,
+      4,
+      64
+    ],
+    "exit1": [
+      1,
+      6
+    ],
+    "stage2": [
+      1,
+      7,
+      32
+    ],
+    "exit2": [
+      1,
+      6
+    ],
+    "stage3": [
+      1,
+      7,
+      16
+    ],
+    "final": [
+      1,
+      6
+    ]
+  },
+  "exits": [
+    {
+      "parameters_up_to_exit": 738,
+      "macs_per_window": 40728,
+      "approx_flops_per_window": 81456
+    },
+    {
+      "parameters_up_to_exit": 1731,
+      "macs_per_window": 67874,
+      "approx_flops_per_window": 135748
+    },
+    {
+      "parameters_up_to_exit": 2486,
+      "macs_per_window": 78108,
+      "approx_flops_per_window": 156216
+    }
+  ],
+  "computation_note": "Conv1d/Linear MACs only, including earlier exit heads; FLOPs = 2 * MACs. Not measured latency or energy."
+}

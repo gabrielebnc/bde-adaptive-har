@@ -1,0 +1,29 @@
+{
+  "selection": "Maximum validation accuracy; ties by minimum MACs, then maximum macro F1",
+  "policies": [
+    {
+      "mode": "normal",
+      "threshold_1": 0.98,
+      "threshold_2": 0.8,
+      "accuracy": 0.9505102040816327,
+      "macro_f1": 0.953728377817373,
+      "exit1_percent": 55.15306091308594,
+      "exit2_percent": 29.59183692932129,
+      "final_percent": 15.255102157592773,
+      "average_stages": 1.6010204553604126,
+      "average_macs": 54463.357239341734
+    },
+    {
+      "mode": "low-power",
+      "threshold_1": 0.98,
+      "threshold_2": null,
+      "accuracy": 0.9321428571428572,
+      "macro_f1": 0.9360517827298489,
+      "exit1_percent": 55.15306091308594,
+      "exit2_percent": 44.84693908691406,
+      "final_percent": 0.0,
+      "average_stages": 1.4484694004058838,
+      "average_macs": 52902.150084533685
+    }
+  ]
+}

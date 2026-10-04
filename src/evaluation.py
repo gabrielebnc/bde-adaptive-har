@@ -12,15 +12,24 @@ from .utils import seed_everything, select_device
 def evaluation_parser(description):
     import argparse
     parser = argparse.ArgumentParser(description=description)
-    parser.add_argument("--checkpoint", required=True)
+    parser.add_argument("--checkpoint", default="models/adaptive_har.pt")
     parser.add_argument("--data-dir", default="data")
     parser.add_argument("--split", choices=["validation", "test"], default="test")
     parser.add_argument("--device", choices=["auto", "cuda", "mps", "cpu"], default="auto")
     parser.add_argument("--batch-size", type=int, default=64)
     parser.add_argument("--num-workers", type=int, default=0)
-    parser.add_argument("--threads", type=int, default=4)
+    parser.add_argument("--threads", type=int, default=2)
     parser.add_argument("--output-dir")
     return parser
+
+
+def artifact_directory(args, name):
+    """Keep reports generated from the committed checkpoint under ignored runs."""
+    checkpoint_path = Path(args.checkpoint)
+    project = Path(__file__).resolve().parents[1]
+    base = (project / "runs/adaptive_har" if checkpoint_path.resolve().parent == project / "models"
+            else checkpoint_path.parent)
+    return Path(args.output_dir) if args.output_dir else base / name
 
 
 def load_evaluation(args):

@@ -11,6 +11,7 @@ from tests.fixtures import write_uci_fixture
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output-dir", default="runs/synthetic_smoke")
+    parser.add_argument("--device", choices=["auto", "cpu", "mps", "cuda"], default="cpu")
     args = parser.parse_args()
     project = Path(__file__).resolve().parents[1]
     root = Path(args.output_dir).resolve()
@@ -22,8 +23,9 @@ def main():
         subprocess.run([sys.executable, str(project / script), *map(str, arguments)], cwd=project, check=True)
     run("train.py", ["--data-dir", data_dir, "--output-dir", run_dir, "--epochs", 2,
                      "--batch-size", 8, "--max-train-batches", 2, "--max-val-batches", 1,
-                     "--calibration-steps", 20])
-    common = ["--checkpoint", run_dir / "best.pt", "--data-dir", data_dir, "--batch-size", 8]
+                     "--calibration-steps", 20, "--device", args.device, "--threads", 2])
+    common = ["--checkpoint", run_dir / "best.pt", "--data-dir", data_dir, "--batch-size", 8,
+              "--device", args.device, "--threads", 2]
     run("evaluate.py", common + ["--split", "test"])
     for mode in ["normal", "low-power"]:
         run("adaptive_evaluate.py", common + ["--sweep", "--mode", mode,
@@ -32,6 +34,10 @@ def main():
         run("adaptive_evaluate.py", common + ["--split", "test", "--mode", mode,
                                               "--threshold-1", 1, "--threshold-2", 0])
     checkpoint_reports = json.loads((run_dir / "evaluation_test/metrics.json").read_text())
+    config = json.loads((run_dir / "config.json").read_text())
+    assert config["lr"] == 0.001
+    assert config["dropouts"] == [0.40, 0.40, 0.10]
+    assert config["loss_weights"] == [0.10, 0.20, 0.70]
     assert checkpoint_reports["data_source"] == "synthetic_test_fixture"
     assert checkpoint_reports["smoke_run"]
     assert (run_dir / "history.png").exists()

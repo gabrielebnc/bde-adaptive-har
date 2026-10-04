@@ -1,0 +1,45 @@
+{
+  "epochs_completed": 71,
+  "best_epoch": 41,
+  "best_validation_loss": 0.21120836839688067,
+  "elapsed_seconds": 115.67888020800001,
+  "data_source": "uci_har",
+  "smoke_run": false,
+  "calibration": [
+    {
+      "temperature": 0.1707403063774109,
+      "validation_nll_before": 0.5826065540313721,
+      "validation_nll_after": 0.23216082155704498
+    },
+    {
+      "temperature": 0.34021732211112976,
+      "validation_nll_before": 0.24231812357902527,
+      "validation_nll_after": 0.15389323234558105
+    },
+    {
+      "temperature": 0.6085935235023499,
+      "validation_nll_before": 0.14926297962665558,
+      "validation_nll_after": 0.1361406445503235
+    }
+  ],
+  "device": "cpu",
+  "checkpoint_selection": "Prefer both validation accuracy gaps, then maximum final accuracy, then minimum weighted CE",
+  "exit_gap_target": {
+    "minimum_gap_percentage_points": 1.0,
+    "validation_gaps_percentage_points": [
+      2.1938775510204067,
+      1.4285714285714235
+    ],
+    "validation_target_met": true,
+    "selected_validation": {
+      "loss": 0.21120836839688067,
+      "samples": 1960,
+      "exit1_loss": 0.5826064720445749,
+      "exit1_accuracy": 0.9102040816326531,
+      "exit2_loss": 0.2423181200666087,
+      "exit2_accuracy": 0.9321428571428572,
+      "final_loss": 0.149262995160736,
+      "final_accuracy": 0.9464285714285714
+    }
+  }
+}

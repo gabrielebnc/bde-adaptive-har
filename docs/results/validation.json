@@ -1,0 +1,374 @@
+{
+  "split": "validation",
+  "checkpoint_epoch": 41,
+  "data_source": "uci_har",
+  "smoke_run": false,
+  "samples": 1960,
+  "exits": {
+    "exit1": {
+      "accuracy": 0.9102040816326531,
+      "macro_f1": 0.9121893911734097,
+      "per_class": {
+        "WALKING": {
+          "precision": 0.864406779661017,
+          "recall": 0.9839228295819936,
+          "f1": 0.9203007518796993,
+          "support": 311
+        },
+        "WALKING_UPSTAIRS": {
+          "precision": 1.0,
+          "recall": 0.875,
+          "f1": 0.9333333333333333,
+          "support": 280
+        },
+        "WALKING_DOWNSTAIRS": {
+          "precision": 0.9715447154471545,
+          "recall": 0.9157088122605364,
+          "f1": 0.9428007889546351,
+          "support": 261
+        },
+        "SITTING": {
+          "precision": 0.8921568627450981,
+          "recall": 0.7711864406779662,
+          "f1": 0.8272727272727273,
+          "support": 354
+        },
+        "STANDING": {
+          "precision": 0.7953488372093023,
+          "recall": 0.9144385026737968,
+          "f1": 0.8507462686567164,
+          "support": 374
+        },
+        "LAYING": {
+          "precision": 1.0,
+          "recall": 0.9973684210526316,
+          "f1": 0.9986824769433466,
+          "support": 380
+        }
+      },
+      "confusion_matrix": [
+        [
+          306,
+          0,
+          0,
+          0,
+          5,
+          0
+        ],
+        [
+          27,
+          245,
+          7,
+          0,
+          1,
+          0
+        ],
+        [
+          21,
+          0,
+          239,
+          0,
+          1,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          273,
+          81,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          32,
+          342,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          1,
+          0,
+          379
+        ]
+      ],
+      "confusion_matrix_axes": "rows=true labels; columns=predictions; class order=0..5",
+      "parameters_up_to_exit": 738,
+      "macs_per_window": 40728,
+      "approx_flops_per_window": 81456,
+      "full_model_parameters": 2486
+    },
+    "exit2": {
+      "accuracy": 0.9321428571428572,
+      "macro_f1": 0.9360517827298489,
+      "per_class": {
+        "WALKING": {
+          "precision": 0.9904458598726115,
+          "recall": 1.0,
+          "f1": 0.9952,
+          "support": 311
+        },
+        "WALKING_UPSTAIRS": {
+          "precision": 0.9459459459459459,
+          "recall": 1.0,
+          "f1": 0.9722222222222222,
+          "support": 280
+        },
+        "WALKING_DOWNSTAIRS": {
+          "precision": 1.0,
+          "recall": 0.9272030651340997,
+          "f1": 0.9622266401590457,
+          "support": 261
+        },
+        "SITTING": {
+          "precision": 0.835195530726257,
+          "recall": 0.844632768361582,
+          "f1": 0.8398876404494382,
+          "support": 354
+        },
+        "STANDING": {
+          "precision": 0.8513513513513513,
+          "recall": 0.8422459893048129,
+          "f1": 0.8467741935483871,
+          "support": 374
+        },
+        "LAYING": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "support": 380
+        }
+      },
+      "confusion_matrix": [
+        [
+          311,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          280,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          3,
+          16,
+          242,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          299,
+          55,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          59,
+          315,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          380
+        ]
+      ],
+      "confusion_matrix_axes": "rows=true labels; columns=predictions; class order=0..5",
+      "parameters_up_to_exit": 1731,
+      "macs_per_window": 67874,
+      "approx_flops_per_window": 135748,
+      "full_model_parameters": 2486
+    },
+    "final": {
+      "accuracy": 0.9464285714285714,
+      "macro_f1": 0.9501130903061532,
+      "per_class": {
+        "WALKING": {
+          "precision": 0.9967948717948718,
+          "recall": 1.0,
+          "f1": 0.9983948635634029,
+          "support": 311
+        },
+        "WALKING_UPSTAIRS": {
+          "precision": 0.9782608695652174,
+          "recall": 0.9642857142857143,
+          "f1": 0.9712230215827338,
+          "support": 280
+        },
+        "WALKING_DOWNSTAIRS": {
+          "precision": 1.0,
+          "recall": 0.9578544061302682,
+          "f1": 0.9784735812133072,
+          "support": 261
+        },
+        "SITTING": {
+          "precision": 0.8081534772182254,
+          "recall": 0.9519774011299436,
+          "f1": 0.874189364461738,
+          "support": 354
+        },
+        "STANDING": {
+          "precision": 0.9446153846153846,
+          "recall": 0.820855614973262,
+          "f1": 0.8783977110157367,
+          "support": 374
+        },
+        "LAYING": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "support": 380
+        }
+      },
+      "confusion_matrix": [
+        [
+          311,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          270,
+          0,
+          9,
+          1,
+          0
+        ],
+        [
+          1,
+          6,
+          250,
+          4,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          337,
+          17,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          67,
+          307,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          380
+        ]
+      ],
+      "confusion_matrix_axes": "rows=true labels; columns=predictions; class order=0..5",
+      "parameters_up_to_exit": 2486,
+      "macs_per_window": 78108,
+      "approx_flops_per_window": 156216,
+      "full_model_parameters": 2486
+    }
+  },
+  "model_summary": {
+    "total_parameters": 2486,
+    "model_size": "tiny_25k",
+    "final_mode": "independent",
+    "channels": [
+      4,
+      7,
+      7
+    ],
+    "stem_channels": 4,
+    "stage_blocks": [
+      4,
+      3,
+      2
+    ],
+    "parameter_bytes_float32": 9944,
+    "input_shape": [
+      1,
+      9,
+      128
+    ],
+    "shapes": {
+      "stem": [
+        1,
+        4,
+        64
+      ],
+      "stage1": [
+        1,
+        4,
+        64
+      ],
+      "exit1": [
+        1,
+        6
+      ],
+      "stage2": [
+        1,
+        7,
+        32
+      ],
+      "exit2": [
+        1,
+        6
+      ],
+      "stage3": [
+        1,
+        7,
+        16
+      ],
+      "final": [
+        1,
+        6
+      ]
+    },
+    "exits": [
+      {
+        "parameters_up_to_exit": 738,
+        "macs_per_window": 40728,
+        "approx_flops_per_window": 81456
+      },
+      {
+        "parameters_up_to_exit": 1731,
+        "macs_per_window": 67874,
+        "approx_flops_per_window": 135748
+      },
+      {
+        "parameters_up_to_exit": 2486,
+        "macs_per_window": 78108,
+        "approx_flops_per_window": 156216
+      }
+    ],
+    "computation_note": "Conv1d/Linear MACs only, including earlier exit heads; FLOPs = 2 * MACs. Not measured latency or energy."
+  }
+}

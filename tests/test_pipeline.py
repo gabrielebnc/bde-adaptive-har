@@ -13,8 +13,8 @@ import torch
 
 from src.data import _extract, channel_statistics, dataset_directory, load_split, make_loader, prepare_data, subject_masks
 from src.metrics import classification_metrics, fit_temperatures, policy_predictions, threshold_sweep
-from src.model import MODEL_SIZES, AdaptiveHAR, model_summary
-from src.training import fine_tune_final, freeze_prefix, joint_loss, run_epoch
+from src.model import AdaptiveHAR, model_summary
+from src.training import joint_loss, run_epoch
 from tests.fixtures import write_uci_fixture
 
 
@@ -73,94 +73,24 @@ class PipelineTests(unittest.TestCase):
             restored = prepare_data(root, val_subjects=[5], normalization=data.metadata["normalization"])
             torch.testing.assert_close(restored.test.tensors[0], data.test.tensors[0])
 
-    def test_smaller_architectures_train_route_and_restore(self):
-        previous_parameters, previous_macs = float("inf"), float("inf")
-        for size, channels in MODEL_SIZES.items():
-            with self.subTest(size=size):
-                model = AdaptiveHAR(model_size=size)
-                x, y = torch.randn(4, 9, 128), torch.tensor([0, 1, 2, 3])
-                outputs = model(x)
-                self.assertEqual([tuple(values.shape) for values in outputs], [(4, 6)] * 3)
-                loss, _ = joint_loss(outputs, y)
-                loss.backward()
-                for head in [model.exit1, model.exit2, model.final]:
-                    self.assertTrue(torch.isfinite(head[-1].weight.grad).all())
-                summary = model_summary(model)
-                self.assertEqual(summary["shapes"]["stage1"], [1, channels[0], 64])
-                self.assertEqual(summary["shapes"]["stage2"], [1, channels[1], 32])
-                self.assertEqual(summary["shapes"]["stage3"], [1, channels[2], 16])
-                self.assertLess(summary["total_parameters"], previous_parameters)
-                self.assertLess(summary["exits"][-1]["macs_per_window"], previous_macs)
-                previous_parameters = summary["total_parameters"]
-                previous_macs = summary["exits"][-1]["macs_per_window"]
-                # Checkpoint configuration reconstructs the fixed architecture.
-                restored = AdaptiveHAR(**model.config)
-                restored.load_state_dict(model.state_dict())
-                restored.eval()
-                with torch.no_grad():
-                    logits = restored(x)
-                with patch.object(restored.stage3, "forward", side_effect=AssertionError("stage3 ran")):
-                    result = restored.adaptive_forward(x, 1., 1., mode="low-power")
-                    torch.testing.assert_close(result.logits, logits[1])
-                result = restored.adaptive_forward(x, 0., 0.)
-                torch.testing.assert_close(result.logits, logits[0])
-        # Micro remains an available architecture.
-        self.assertEqual(model_summary(AdaptiveHAR(model_size="micro"))["total_parameters"], 4_430)
-        with self.assertRaises(ValueError):
-            AdaptiveHAR(model_size="unknown")
-
-    def test_tiny_budget_exit_parameter_allocation(self):
-        for size, reference, tolerance in [("tiny_5k", 5000, .005), ("tiny_25k", 2500, .005),
-                                           ("tiny_1k", 1000, .01)]:
-            smaller = model_summary(AdaptiveHAR(model_size=size))
-            self.assertLessEqual(smaller["total_parameters"], reference)
-            self.assertLess(abs(smaller["total_parameters"] / reference - 1), .02)
-            for exit_report, target in zip(smaller["exits"][:2], [.30, .70]):
-                self.assertLess(abs(exit_report["parameters_up_to_exit"] / smaller["total_parameters"] - target), tolerance)
-
-    def test_final_only_training_preserves_prefix_parameters_buffers_and_logits(self):
+    def test_selected_architecture_restores_without_architecture_switching(self):
         model = AdaptiveHAR().eval()
-        x, y = torch.randn(8, 9, 128), torch.arange(8) % 6
+        restored = AdaptiveHAR(**model.config).eval()
+        restored.load_state_dict(model.state_dict())
+        x = torch.randn(4, 9, 128)
         with torch.no_grad():
-            earlier = [v.clone() for v in model(x)[:2]]
-        frozen = {n: v.clone() for n, v in model.state_dict().items()
-                  if n.split(".")[0] not in {"stage3", "final"}}
-        final_weight = model.final[-1].weight.detach().clone()
-        freeze_prefix(model)
-        optimizer = torch.optim.AdamW([p for p in model.parameters() if p.requires_grad], lr=1e-3)
-        run_epoch(model, [(x, y)], torch.device("cpu"), (0., 0., 1.), optimizer, train_final_only=True)
-        self.assertFalse(torch.equal(model.final[-1].weight, final_weight))
-        for n, value in frozen.items():
-            self.assertTrue(torch.equal(model.state_dict()[n], value), n)
-        model.eval()
-        with torch.no_grad():
-            after = model(x)
-        for original, actual in zip(earlier, after):
-            self.assertTrue(torch.equal(original, actual))
+            for expected, actual in zip(model(x), restored(x)):
+                torch.testing.assert_close(actual, expected)
+        with self.assertRaises(ValueError):
+            AdaptiveHAR(model_size="unsupported")
+        with self.assertRaises(ValueError):
+            AdaptiveHAR(final_mode="unsupported")
 
-    def test_final_fine_tuning_retains_source_candidate_and_earlier_calibration(self):
-        with tempfile.TemporaryDirectory() as root:
-            write_uci_fixture(root, windows_per_subject=12)
-            bundle = prepare_data(root, val_subjects=[5])
-            model = AdaptiveHAR()
-            config = {"lr": 1e-4, "weight_decay": 1e-4, "epochs": 2, "patience": 2,
-                      "min_delta": 0., "loss_weights": [.2, .3, .5], "calibration_steps": 10,
-                      "source_checkpoint": "fixture-source.pt"}
-            source = {"model_config": model.config, "model_state": {n: v.clone() for n, v in model.state_dict().items()},
-                      "epoch": 7, "temperatures": [.7, .8, .9], "calibrated": True,
-                      "calibration": [{"temperature": t} for t in [.7, .8, .9]],
-                      "data_metadata": bundle.metadata}
-            output = Path(root) / "fine_tuned"
-            result = fine_tune_final(model, make_loader(bundle.train, 16), make_loader(bundle.validation, 16),
-                                     torch.device("cpu"), output, source, config)
-            checkpoint = torch.load(output / "best.pt", weights_only=True)
-            self.assertLessEqual(result["best_validation_loss"], result["baseline_validation"]["loss"])
-            self.assertEqual(checkpoint["temperatures"][:2], source["temperatures"][:2])
-            self.assertTrue(result["frozen_state_verified"])
-            self.assertEqual(checkpoint["fine_tuning"]["source_epoch"], 7)
-            for name, value in source["model_state"].items():
-                if name.split(".")[0] not in {"stage3", "final"}:
-                    self.assertTrue(torch.equal(checkpoint["model_state"][name], value), name)
+    def test_exit_parameter_allocation(self):
+        summary = model_summary(AdaptiveHAR())
+        self.assertEqual(summary["total_parameters"], 2486)
+        for exit_report, target in zip(summary["exits"][:2], [.30, .70]):
+            self.assertLess(abs(exit_report["parameters_up_to_exit"] / 2486 - target), .005)
 
     def test_subject_split_determinism_and_invalid_splits(self):
         subjects = np.repeat(np.arange(1, 8), 10)

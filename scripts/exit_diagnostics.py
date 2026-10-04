@@ -5,13 +5,13 @@ from pathlib import Path
 import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from src.evaluation import load_evaluation
+from src.evaluation import artifact_directory, load_evaluation
 from src.metrics import collect_logits
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--checkpoint", required=True)
+    parser.add_argument("--checkpoint", default="models/adaptive_har.pt")
     parser.add_argument("--data-dir", default="data")
     parser.add_argument("--device", choices=["auto", "cpu", "mps", "cuda"], default="cpu")
     parser.add_argument("--threads", type=int, default=2)
@@ -38,7 +38,7 @@ def main():
     report = {"checkpoint": args.checkpoint, "checkpoint_epoch": checkpoint["epoch"],
               "model_config": checkpoint["model_config"], "splits": reports,
               "purpose": "Descriptive evaluation; no checkpoint or policy selection"}
-    output = Path(args.output_dir or Path(args.checkpoint).parent / "exit_diagnostics")
+    output = artifact_directory(args, "exit_diagnostics")
     output.mkdir(parents=True, exist_ok=True)
     (output / "corrections.json").write_text(json.dumps(report, indent=2) + "\n")
     print(json.dumps(reports, indent=2))
