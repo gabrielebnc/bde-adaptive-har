@@ -1,0 +1,284 @@
+{
+  "schema_version": 1,
+  "selection_split": "validation",
+  "checkpoint_sha256": "3c272d8a9856e8ec1c4d73079e350e60b8c3fde36d0a2fe870be8b3bbada2896",
+  "code_sha256": {
+    "pareto_evaluate.py": "a28cea45fead00c148f33019a98ecaae8b04c069ed4b42913daf9a7aeb9a13ef",
+    "src/pareto.py": "c9cc5a28972745fae9843e20696eaadd9159c8b4cd4bb447f5049544eb9c8496",
+    "src/model.py": "4f171fb043f1e6f1324f008e85ab0bec060b24f2192a5e129ac1d7d601f290b4",
+    "src/metrics.py": "f286b3f346f3dd7c5498c2009301c89c7fa191f5549ee953808c80befe3629a3",
+    "src/data.py": "6daa60ad85abc9afdd097697b23464824eee7b2218b5f4e5822a0560ced746bf",
+    "src/evaluation.py": "a13c15eca8a48efebedab306e1ce0e7237b135dc12ed70084ec066e4bd6c42f2",
+    "src/utils.py": "1abaf981d1fc769b337c556d6280e259930d14991f1fac1d5b70c848e03e6f1c",
+    "adaptive_evaluate.py": "94b1d5fff220af4f5be1c74118a931afcacc6f7e4d8d0adbaca46702254fcbb8"
+  },
+  "baseline_checkpoint_sha256": "3c272d8a9856e8ec1c4d73079e350e60b8c3fde36d0a2fe870be8b3bbada2896",
+  "compute_method": "conv-linear-2flops-v1",
+  "thresholds_1": [
+    0.0,
+    0.5,
+    0.6,
+    0.7,
+    0.8,
+    0.9,
+    0.95,
+    0.98,
+    0.99,
+    1.0
+  ],
+  "thresholds_2": [
+    0.0,
+    0.5,
+    0.6,
+    0.7,
+    0.8,
+    0.9,
+    0.95,
+    0.98,
+    0.99,
+    1.0
+  ],
+  "selection_rule": "All non-dominated validation policies within each mode; equal accuracy/cost ties take first in sorted grid. Always include three static depths.",
+  "policies": [
+    {
+      "id": "normal_0.0_0.0",
+      "kind": "adaptive",
+      "mode": "normal",
+      "threshold_1": 0.0,
+      "threshold_2": 0.0,
+      "depth": null
+    },
+    {
+      "id": "normal_0.5_0.0",
+      "kind": "adaptive",
+      "mode": "normal",
+      "threshold_1": 0.5,
+      "threshold_2": 0.0,
+      "depth": null
+    },
+    {
+      "id": "normal_0.5_0.5",
+      "kind": "adaptive",
+      "mode": "normal",
+      "threshold_1": 0.5,
+      "threshold_2": 0.5,
+      "depth": null
+    },
+    {
+      "id": "normal_0.6_0.0",
+      "kind": "adaptive",
+      "mode": "normal",
+      "threshold_1": 0.6,
+      "threshold_2": 0.0,
+      "depth": null
+    },
+    {
+      "id": "normal_0.6_0.5",
+      "kind": "adaptive",
+      "mode": "normal",
+      "threshold_1": 0.6,
+      "threshold_2": 0.5,
+      "depth": null
+    },
+    {
+      "id": "normal_0.6_0.6",
+      "kind": "adaptive",
+      "mode": "normal",
+      "threshold_1": 0.6,
+      "threshold_2": 0.6,
+      "depth": null
+    },
+    {
+      "id": "normal_0.7_0.0",
+      "kind": "adaptive",
+      "mode": "normal",
+      "threshold_1": 0.7,
+      "threshold_2": 0.0,
+      "depth": null
+    },
+    {
+      "id": "normal_0.7_0.5",
+      "kind": "adaptive",
+      "mode": "normal",
+      "threshold_1": 0.7,
+      "threshold_2": 0.5,
+      "depth": null
+    },
+    {
+      "id": "normal_0.7_0.6",
+      "kind": "adaptive",
+      "mode": "normal",
+      "threshold_1": 0.7,
+      "threshold_2": 0.6,
+      "depth": null
+    },
+    {
+      "id": "normal_0.7_0.8",
+      "kind": "adaptive",
+      "mode": "normal",
+      "threshold_1": 0.7,
+      "threshold_2": 0.8,
+      "depth": null
+    },
+    {
+      "id": "normal_0.8_0.6",
+      "kind": "adaptive",
+      "mode": "normal",
+      "threshold_1": 0.8,
+      "threshold_2": 0.6,
+      "depth": null
+    },
+    {
+      "id": "normal_0.8_0.7",
+      "kind": "adaptive",
+      "mode": "normal",
+      "threshold_1": 0.8,
+      "threshold_2": 0.7,
+      "depth": null
+    },
+    {
+      "id": "normal_0.8_0.8",
+      "kind": "adaptive",
+      "mode": "normal",
+      "threshold_1": 0.8,
+      "threshold_2": 0.8,
+      "depth": null
+    },
+    {
+      "id": "normal_0.9_0.6",
+      "kind": "adaptive",
+      "mode": "normal",
+      "threshold_1": 0.9,
+      "threshold_2": 0.6,
+      "depth": null
+    },
+    {
+      "id": "normal_0.9_0.7",
+      "kind": "adaptive",
+      "mode": "normal",
+      "threshold_1": 0.9,
+      "threshold_2": 0.7,
+      "depth": null
+    },
+    {
+      "id": "normal_0.9_0.8",
+      "kind": "adaptive",
+      "mode": "normal",
+      "threshold_1": 0.9,
+      "threshold_2": 0.8,
+      "depth": null
+    },
+    {
+      "id": "normal_0.95_0.7",
+      "kind": "adaptive",
+      "mode": "normal",
+      "threshold_1": 0.95,
+      "threshold_2": 0.7,
+      "depth": null
+    },
+    {
+      "id": "normal_0.95_0.8",
+      "kind": "adaptive",
+      "mode": "normal",
+      "threshold_1": 0.95,
+      "threshold_2": 0.8,
+      "depth": null
+    },
+    {
+      "id": "normal_0.98_0.8",
+      "kind": "adaptive",
+      "mode": "normal",
+      "threshold_1": 0.98,
+      "threshold_2": 0.8,
+      "depth": null
+    },
+    {
+      "id": "low-power_0.0_off",
+      "kind": "adaptive",
+      "mode": "low-power",
+      "threshold_1": 0.0,
+      "threshold_2": null,
+      "depth": null
+    },
+    {
+      "id": "low-power_0.5_off",
+      "kind": "adaptive",
+      "mode": "low-power",
+      "threshold_1": 0.5,
+      "threshold_2": null,
+      "depth": null
+    },
+    {
+      "id": "low-power_0.6_off",
+      "kind": "adaptive",
+      "mode": "low-power",
+      "threshold_1": 0.6,
+      "threshold_2": null,
+      "depth": null
+    },
+    {
+      "id": "low-power_0.7_off",
+      "kind": "adaptive",
+      "mode": "low-power",
+      "threshold_1": 0.7,
+      "threshold_2": null,
+      "depth": null
+    },
+    {
+      "id": "low-power_0.8_off",
+      "kind": "adaptive",
+      "mode": "low-power",
+      "threshold_1": 0.8,
+      "threshold_2": null,
+      "depth": null
+    },
+    {
+      "id": "low-power_0.9_off",
+      "kind": "adaptive",
+      "mode": "low-power",
+      "threshold_1": 0.9,
+      "threshold_2": null,
+      "depth": null
+    },
+    {
+      "id": "low-power_0.95_off",
+      "kind": "adaptive",
+      "mode": "low-power",
+      "threshold_1": 0.95,
+      "threshold_2": null,
+      "depth": null
+    },
+    {
+      "id": "low-power_0.98_off",
+      "kind": "adaptive",
+      "mode": "low-power",
+      "threshold_1": 0.98,
+      "threshold_2": null,
+      "depth": null
+    },
+    {
+      "id": "static_exit_1",
+      "kind": "static",
+      "mode": "static",
+      "threshold_1": null,
+      "threshold_2": null,
+      "depth": 1
+    },
+    {
+      "id": "static_exit_2",
+      "kind": "static",
+      "mode": "static",
+      "threshold_1": null,
+      "threshold_2": null,
+      "depth": 2
+    },
+    {
+      "id": "static_exit_3",
+      "kind": "static",
+      "mode": "static",
+      "threshold_1": null,
+      "threshold_2": null,
+      "depth": 3
+    }
+  ]
+}

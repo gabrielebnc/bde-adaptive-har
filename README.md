@@ -160,6 +160,32 @@ The battery slider enters low-power at 35%, recovers normal at 40%, and forces
 Exit 1 below 20%. No new model or training is involved. See [sim/README.md](sim/README.md)
 for the controller, controls, headless replay, exports and measurement limitations.
 
+## Pareto frontier evaluation
+
+Generate the assignment's accuracy-versus-FLOPs plots with static fixed-depth
+references and validation-selected adaptive policies:
+
+```bash
+python pareto_evaluate.py --split validation --device cpu --output-dir runs/pareto_v1/validation
+python pareto_evaluate.py --split test --device cpu --policies runs/pareto_v1/validation/policies.json --output-dir runs/pareto_v1/test
+```
+
+Outputs include PNG/SVG plots, all operating points, a frozen policy manifest,
+baseline comparisons and provenance. Test thresholds cannot be swept; a changed
+checkpoint requires new validation selection. Static references skip unused
+heads and use `--baseline-checkpoint` (the original included model by default),
+which should stay fixed across later experiments. These are preliminary comparisons:
+compression and an independently trained static baseline remain future work.
+See [the evaluation protocol](docs/pareto.md) for the FLOPs convention,
+selection rules, reproduction instructions and assignment limitations.
+
+The included checkpoint's [test frontier](docs/results/pareto/test/pareto.png)
+and [test report](docs/results/pareto/test/report.md) are saved alongside the
+[validation sweep](docs/results/pareto/validation/pareto.png) and frozen policy
+manifest. The normal 0.98/0.80 policy uses 30.51% fewer calculated FLOPs than
+the fixed full-depth reference, with a 0.034 percentage-point test accuracy
+decrease. These remain exploratory, single-seed results.
+
 ## Reproduce training
 
 ```bash
