@@ -147,6 +147,19 @@ python adaptive_evaluate.py --checkpoint runs/adaptive_har_retrain/best.pt --dat
 Test-set sweeps are disabled. MACs estimate Conv/Linear computation, not measured
 latency, power consumption or battery life.
 
+## Live resource-shock demonstration
+
+```bash
+python -m sim
+```
+
+A desktop window compares the battery-aware model, fixed normal-mode inference,
+and fixed full-depth inference on the same shuffled test windows. Three stacked
+graphs show compute and cumulative accuracy, with exit usage and latency metrics.
+The battery slider enters low-power at 35%, recovers normal at 40%, and forces
+Exit 1 below 20%. No new model or training is involved. See [sim/README.md](sim/README.md)
+for the controller, controls, headless replay, exports and measurement limitations.
+
 ## Reproduce training
 
 ```bash
