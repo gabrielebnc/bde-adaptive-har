@@ -161,6 +161,28 @@ class SimulationTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 parse_battery_script(text)
 
+    def test_metrics_keep_full_totals_but_only_recent_correctness(self):
+        metrics = Metrics(6)
+        for step in range(100):
+            metrics.add(0, Prediction(0 if step < 70 else 1, .9, 1, 81456, 2.))
+        self.assertEqual(len(metrics.recent_correct), 50)
+        self.assertEqual(metrics.samples, 100)
+        self.assertEqual(metrics.accuracy, .7)
+        self.assertEqual(metrics.snapshot()["rolling_accuracy"], .4)
+        self.assertEqual(metrics.snapshot()["total_flops"], 100 * 81456)
+
+    def test_plot_shades_contiguous_modes_as_single_regions(self):
+        from sim.plotting import SimulationFigure
+        from matplotlib.backends.backend_agg import FigureCanvasAgg
+        simulator = self.simulator()
+        for battery in [80, 30, 30, 30, 10, 10, 40]:
+            simulator.step(battery)
+        plot = SimulationFigure()
+        FigureCanvasAgg(plot.figure)
+        plot.update(simulator)
+        self.assertEqual(len(plot.axes[0].patches), 2)
+        self.assertTrue(all(not ax.patches for ax in plot.axes[1:]))
+
     def test_headless_cli_from_fixture_produces_three_stacked_graphs(self):
         with tempfile.TemporaryDirectory() as tmp:
             tmp = Path(tmp)

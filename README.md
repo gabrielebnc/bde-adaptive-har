@@ -74,13 +74,7 @@ The full `data/` directory is git-ignored; it should not be pushed to GitHub.
 For a manual download, use the Download button on the UCI page linked above,
 save the complete ZIP as `data/uci_har_complete.zip`, and run the preparation
 command above. It also extracts the inner dataset ZIP when the download is wrapped
-in an outer ZIP. Alternatively, download the same archive from a terminal:
-
-```bash
-mkdir -p data
-curl -L --fail 'https://archive.ics.uci.edu/static/public/240/human%2Bactivity%2Brecognition%2Busing%2Bsmartphones.zip' -o data/uci_har_complete.zip
-python -m src.data --download --data-dir data
-```
+in an outer ZIP.
 
 If the archive is already fully extracted at `data/UCI HAR Dataset/`, validate
 and prepare it without downloading again:
@@ -162,7 +156,7 @@ for the controller, controls, headless replay, exports and measurement limitatio
 
 ## Pareto frontier evaluation
 
-Generate the assignment's accuracy-versus-FLOPs plots with static fixed-depth
+Generate accuracy-versus-FLOPs plots with static fixed-depth
 references and validation-selected adaptive policies:
 
 ```bash
@@ -174,10 +168,8 @@ Outputs include PNG/SVG plots, all operating points, a frozen policy manifest,
 baseline comparisons and provenance. Test thresholds cannot be swept; a changed
 checkpoint requires new validation selection. Static references skip unused
 heads and use `--baseline-checkpoint` (the original included model by default),
-which should stay fixed across later experiments. These are preliminary comparisons:
-compression and an independently trained static baseline remain future work.
-See [the evaluation protocol](docs/pareto.md) for the FLOPs convention,
-selection rules, reproduction instructions and assignment limitations.
+which should stay fixed across later experiments. See [the evaluation protocol](docs/pareto.md)
+for compute conventions, selection rules, outputs and limitations.
 
 The included checkpoint's [test frontier](docs/results/pareto/test/pareto.png)
 and [test report](docs/results/pareto/test/report.md) are saved alongside the
@@ -193,17 +185,9 @@ python train.py --data-dir data --output-dir runs/adaptive_har_retrain --device 
 python scripts/evaluate_run.py --run-dir runs/adaptive_har_retrain --data-dir data --device cpu --threads 2
 ```
 
-Defaults match the selected recipe: seed 42, AdamW, learning rate 0.001,
-weight decay 0.0001, batch size 64, cosine decay over up to 100 epochs,
-patience 30, two CPU threads, dropout 0.40 / 0.40 / 0.10, and loss weights
-0.10 / 0.20 / 0.70.
-
-Checkpoint selection first prefers both adjacent validation accuracy gains
-being at least one point, then maximizes final validation accuracy and minimizes
-weighted cross-entropy. If no epoch qualifies, the best final-accuracy candidate
-is retained and the unmet target is recorded. No test labels select an epoch.
-One positive temperature per exit is fitted on validation; scaling changes
-confidence, not predicted classes.
+Defaults match the selected recipe. See [the model record](docs/model.md#training-and-calibration)
+for hyperparameters, validation-gap checkpoint selection and calibration. Training
+never uses test labels to select checkpoints or thresholds.
 
 Training writes the checkpoint, settings, split metadata, model summary,
 histories, plots and calibration diagnostics to its output directory.

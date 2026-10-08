@@ -1,8 +1,5 @@
 """Three vertically stacked comparison graphs, reusable without a display."""
-import os
-from pathlib import Path
-
-os.environ.setdefault("MPLCONFIGDIR", str(Path(__file__).resolve().parents[1] / ".mplconfig"))
+from itertools import groupby
 from matplotlib.figure import Figure
 from matplotlib.lines import Line2D
 
@@ -55,10 +52,11 @@ class SimulationFigure:
                                  color="#d28010", linestyle="--", linewidth=1.25)
                 if key == "battery":
                     # Shade the mode of each observed window, not future slider values.
-                    for r in records:
-                        if r["mode"] != "normal":
-                            ax.axvspan(r["step"] - .5, r["step"] + .5,
-                                       color=MODE_COLORS[r["mode"]], alpha=.10, linewidth=0)
+                    for mode, group in groupby(records, key=lambda r: r["mode"]):
+                        block = list(group)
+                        if mode != "normal":
+                            ax.axvspan(block[0]["step"] - .5, block[-1]["step"] + .5,
+                                       color=MODE_COLORS[mode], alpha=.10, linewidth=0)
                 latest = records[-1]
                 ax.set_xlim(max(.5, latest["step"] - self.history + .5),
                             max(10.5, latest["step"] + .5))

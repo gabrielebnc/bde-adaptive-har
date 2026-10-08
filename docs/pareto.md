@@ -1,157 +1,101 @@
-# Accuracy versus FLOPs evaluation
+# Accuracy versus compute
 
-This workflow addresses assignment Sections 5, 6.4 and 9: three or more compute
-levels, consistent calculated FLOPs, static comparisons, and validation-only
-threshold selection before final evaluation. It does not add compression or
-claim that the complete assignment is finished.
+Evaluate the selected model's accuracy/compute trade-off using frozen adaptive
+policies and three fixed-depth references. This is evaluation, not training or
+compression.
 
-## Included checkpoint results
+## Included results
 
-The saved [validation results](results/pareto/validation/results.json)
-contain 113 configurations: 100 normal threshold pairs, ten low-power
-thresholds and three static depths. Validation selection freezes 27 adaptive
-policies plus the three static references. All 30 are evaluated on the official
-test subjects, including 17 configurations dominated on that sample.
+The validation sweep contains 113 configurations: 100 normal threshold pairs,
+ten low-power thresholds and three static depths. It selects 27 adaptive policies
+plus the three static references. All 30 are evaluated on test, including policies
+that become dominated.
 
-![Test accuracy versus calculated FLOPs](results/pareto/test/pareto.png)
+![Test frontier](results/pareto/test/pareto.png)
 
-The frozen normal 0.98/0.80 policy obtains 92.467% test accuracy at approximately
-108,462 FLOPs/window. The full-depth static reference obtains 92.501% at
-156,084 FLOPs/window: 30.51% less calculated compute for a 0.034 percentage-point
-accuracy decrease. This is a descriptive near-matched-accuracy comparison;
-the difference is one test window, not evidence of statistical equivalence.
-The middle fixed-depth reference is dominated by several adaptive policies.
-Low-power policies are retained because of their hard Stage-3 exclusion,
-even where normal policies dominate them on average accuracy and FLOPs.
+Normal mode with thresholds 0.98 / 0.80 achieves 92.467% test accuracy at
+108,462 FLOPs/window. The fixed full-depth reference achieves 92.501% at
+156,084: **30.51% less calculated compute**, with one fewer correctly classified
+test window. This is not evidence of statistical equivalence or battery savings.
 
 See the [test report](results/pareto/test/report.md),
-[operating-point table](results/pareto/test/operating_points.csv),
+[operating points](results/pareto/test/operating_points.csv),
 [validation plot](results/pareto/validation/pareto.png) and
-[policy manifest](results/pareto/validation/policies.json). The original
-checkpoint and baseline hashes are recorded in the JSON outputs. These saved
-figures are a before-compression reference, not a completed compression study.
+[frozen policies](results/pareto/validation/policies.json).
 
 ## Run
 
-Install `requirements.txt` and prepare UCI HAR as described in the README. From
-the repository root (on Windows, activate `.venv\Scripts\Activate.ps1`):
+Prepare the dataset as described in the [README](../README.md), then run from
+the repository root:
 
 ```bash
 python pareto_evaluate.py --split validation --device cpu --output-dir runs/pareto_v1/validation
 python pareto_evaluate.py --split test --device cpu --policies runs/pareto_v1/validation/policies.json --output-dir runs/pareto_v1/test
 ```
 
-Both commands default to `models/adaptive_har.pt`. For a retrained adaptive model,
-pass the same new `--checkpoint` to both commands and use a new output directory.
-The separate `--baseline-checkpoint` defaults to the original
-`models/adaptive_har.pt`: keep it fixed across experiments. Its hash is also bound
-to the manifest. Both checkpoints must use identical subject splits, channels,
-labels and dataset sizes; each restores its own training normalization.
-Existing nonempty output directories are protected from overwrite. No training
-or checkpoint mutation happens during evaluation.
+Both use `models/adaptive_har.pt` by default. For a retrained model, supply the
+same new `--checkpoint` to both commands. The separate `--baseline-checkpoint`
+defaults to the included model and should remain fixed across comparisons.
+Checkpoints must use identical dataset splits, channels, labels and sizes;
+each restores its own training normalization. Use a fresh output directory.
 
-Validation evaluates a 10-by-10 grid of normal-mode thresholds and ten low-power
-thresholds. Override these with comma-separated `--thresholds-1` and
-`--thresholds-2` on validation only. The finite grid is a sampled policy family,
-not an exhaustive search of every real-valued threshold. A threshold of 1 is
-still a confidence comparison (`>=`); floating-point softmax may equal 1, so
-it is **not** used to implement forced-depth static references.
+## Selection and safeguards
 
-Every candidate appears in the validation table and plot. The manifest keeps
-all non-dominated validation policies **within each mode**, preserving a
-low-power family even if normal mode dominates it globally. Equal accuracy/cost
-coordinates use the first policy in sorted grid order. Three explicit static
-depths are always retained. Static references do not eliminate adaptive policies
-during selection. Selected cached validation estimates are verified against
-actual conditional execution; a routing discrepancy stops the run.
+- Validation uses a 10-by-10 normal threshold grid and ten low-power thresholds.
+  Override with `--thresholds-1` / `--thresholds-2` on validation only.
+- Keep each mode's non-dominated policies: no other policy in that mode has
+  equal or lower cost and equal or higher accuracy with a strict improvement.
+  Equal-coordinate ties select the first policy in sorted grid order.
+- Always include all three static depths. Keeping low-power policies separately
+  preserves their hard Stage-3 exclusion even when normal mode dominates globally.
+- Check selected cached validation estimates against actual conditional execution.
+- Test requires the validation manifest, rejects threshold grids, and evaluates
+  every frozen policy. Highlighting the test frontier does not select a new policy.
+- Manifests bind checkpoint, baseline and evaluation-code hashes. Changed code
+  or checkpoints require new validation selection. Hashes provide traceability,
+  not protection against deliberate editing.
+- Refuse nonempty output directories; do not train or mutate checkpoints.
 
-Test evaluates every frozen manifest entry, including entries that become
-dominated on test. It never searches thresholds or filters the evaluated family
-using test accuracy. The test frontier is a descriptive highlight over this
-fixed family, not a new deployment-policy selection. Choose deployment budgets
-on validation. Manifests are tied to checkpoint and evaluation-code hashes;
-changing either requires a fresh validation run. Hashes provide traceability,
-not protection against deliberate manifest editing.
+A confidence threshold of 1 is not a forced depth: floating-point softmax can
+equal 1. Static references execute their depth directly and skip unused heads.
+
+## Compute convention
+
+FLOPs = 2 × executed Conv1d/Linear MACs. The counter uses actual tensor shapes,
+including the remaining adaptive batch after each exit. Validation-grid estimates
+use per-path MACs weighted by exact exit counts.
+
+Adaptive paths pay for every visited classifier. Static paths skip intermediate
+classifiers and cost 81,456 / 135,700 / 156,084 FLOPs/window.
+
+Counts exclude bias, BatchNorm, activations, residual additions, pooling, softmax,
+routing and data movement. They are a consistent Conv/Linear proxy, not complete
+runtime work, measured latency, energy or battery life.
 
 ## Outputs
 
-Each directory contains:
+| File | Contents |
+| --- | --- |
+| `pareto.png`, `pareto.svg` | Accuracy versus compute; dashed segments are visual guides, not measured intermediate policies. |
+| `operating_points.csv` | Every evaluated point, accuracy/F1, exit usage, MACs/FLOPs and dominance. |
+| `results.json` | Metrics, classification reports, split/normalization metadata and runtime/code/checkpoint provenance. |
+| `policies.json` | Frozen validation selection, copied unchanged into test output. |
+| `baseline_comparison.json` | Accuracy differences and compute savings versus fixed full depth. |
+| `report.md` | Readable results and interpretation. |
 
-- `pareto.png` and `pareto.svg`: accuracy (%) versus average FLOPs per window,
-  with normal, low-power and fixed-depth configurations distinguished.
-- `operating_points.csv`: every evaluated point, exit frequencies, macro F1,
-  accuracy, average stages, MACs, FLOPs and a non-dominated flag.
-- `results.json`: metrics plus checkpoint/code hashes, data splits and saved
-  normalization, temperatures, device/runtime settings and detailed classification
-  reports for executed policies.
-- `policies.json`: selected validation policies; copied unchanged into test output.
-- `baseline_comparison.json`: accuracy change in percentage points and compute
-  reduction relative to the static full-depth reference, for each adaptive point.
-- `report.md`: readable table, methodology and interpretation limits.
+## Limits
 
-A point is dominated if another evaluated point has no greater cost and no
-lower accuracy, with at least one strict improvement. Identical coordinates
-remain non-dominated ties in results. The dashed frontier joins unique
-non-dominated coordinates only as a visual guide; intermediate configurations
-are not measured and are not guaranteed attainable.
+The static references share trained weights with the adaptive model; they are
+fixed-depth ablations, not independently trained static CNNs. The checkpoint is
+single-seed and exploratory, with prior inspection of test subjects. This protocol
+prevents additional test-threshold tuning but cannot create a fresh holdout.
+Tiny differences require stronger uncertainty evidence.
 
-## Compute methodology and static baseline
+Compression, independent static training and repeated training seeds are optional
+extensions, not implemented features. Changes to training, preprocessing or
+calibration require a new validation manifest. Quantization alone does not reduce
+FLOP counts; report precision, memory and measured latency separately.
 
-The same hook-based Conv1d/Linear counter is used for actual static and adaptive
-execution. One multiply-accumulate counts as two FLOPs. It uses executed output
-shapes, including the actual remaining batch size after each exit. Validation
-sweep estimates use the existing `model_summary` per-path MAC counts and exact
-integer exit counts. For adaptive routing:
-
-`average FLOPs = 2 * sum(number exiting at i * cumulative MACs to i) / N`.
-
-Cumulative adaptive costs include all visited exit heads. The counter excludes
-bias additions, BatchNorm, activation functions, residual additions, pooling,
-softmax, routing and data movement. This is a consistently calculated
-Conv/Linear FLOPs proxy under the assignment's calculation allowance; it is
-not total runtime work, measured latency, energy, or battery life. Do not mix
-these values with another profiler's convention without recalculating all points.
-
-The static references execute exactly one fixed depth and its final classifier,
-skipping unused intermediate heads and all confidence decisions. Their weights
-come from the unchanged baseline checkpoint. For the included architecture the costs
-are 81,456 / 135,700 / 156,084 FLOPs per window. The latter two are slightly below
-the old cumulative adaptive-path counts because unused heads no longer execute.
-These are transparent fixed-depth ablations, including a non-adaptive full-depth
-baseline. They are **not independently trained, well-tuned static CNNs**. Such a
-baseline would strengthen the assignment comparison and should be frozen before
-comparing subsequent adaptive improvements.
-
-## Interpretation and assignment limits
-
-Compare points at similar accuracy or compute, using the full-depth comparison
-table for percentage-point accuracy losses and percentage compute reductions.
-Do not claim improvement from an arbitrary point-to-point comparison with a
-large accuracy difference. The frontier is empirical over the evaluated family,
-not proof of a globally optimal model or statistically significant improvement.
-
-The current network has early exits but no implemented compression technique.
-Add the chosen compression experiment and evaluate a new checkpoint using this
-same protocol. Keep the present curve as the before-compression reference.
-Training/KD/calibration changes may move adaptive FLOPs even without architecture
-changes, because exit frequencies change. Structured pruning changes path costs.
-Quantization does not by itself reduce the number of arithmetic operations;
-report precision and memory/latency separately when adding quantized models.
-
-The selected checkpoint's model record discloses single-seed exploratory results
-and prior test-subject inspection. This protocol prevents additional threshold
-tuning on test but cannot undo that history. Use a fresh holdout where available,
-or disclose the limitation. Repeated training seeds and subject-level uncertainty
-estimates would strengthen conclusions, especially for tiny accuracy differences.
-Synthetic smoke outputs are labelled and must never be used as project results.
-
-## Verification
-
-```bash
-python -m unittest discover -s tests -v
-```
-
-The Pareto tests cover domination and ties, per-mode selection, exact forced
-depths, skipped-head accounting, mixed-batch execution costs, manifest mismatch
-rejection, test-sweep rejection, overwrite protection, and a complete synthetic
-validation-to-test CLI run that produces plots and reports.
+Synthetic smoke outputs only verify software. Run
+`python -m unittest tests.test_pareto -v` to check selection, execution/accounting,
+manifest validation, test-sweep rejection, overwrite protection and the CLI.

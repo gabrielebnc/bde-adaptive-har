@@ -1,16 +1,15 @@
 """GUI-independent real inference, fair sampling, and cumulative accounting."""
-import hashlib
 import time
-from contextlib import contextmanager
+from collections import deque
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from types import SimpleNamespace
 
 import numpy as np
 import torch
-from torch import nn
 
 from src.evaluation import load_evaluation, write_csv
+from src.pareto import COMPUTE_NOTE, count_macs, sha256, static_forward
 from src.utils import write_json
 from .policy import BatteryController
 
@@ -18,29 +17,6 @@ POLICIES = ("battery", "normal", "full")
 TITLES = {"battery": "Battery-aware adaptive model",
           "normal": "Adaptive model · fixed normal mode",
           "full": "Fixed full-depth model"}
-COMPUTE_NOTE = ("FLOPs = 2 * executed Conv1d/Linear MACs. Excludes bias, normalization, "
-                "activations, pooling, residual additions, softmax, routing and data movement. "
-                "Not measured energy or battery life.")
-
-
-@contextmanager
-def executed_macs(model):
-    count = {"macs": 0}
-    handles = []
-
-    def record(module, inputs, output):
-        width = ((module.in_channels // module.groups) * module.kernel_size[0]
-                 if isinstance(module, nn.Conv1d) else module.in_features)
-        count["macs"] += output.numel() * width
-
-    try:
-        for module in model.modules():
-            if isinstance(module, (nn.Conv1d, nn.Linear)):
-                handles.append(module.register_forward_hook(record))
-        yield count
-    finally:
-        for handle in handles:
-            handle.remove()
 
 
 def synchronize(device):
@@ -66,13 +42,11 @@ def infer(model, x, temperatures, mode):
         raise ValueError("Unknown inference mode")
     if model.training or len(x) != 1:
         raise ValueError("Simulation inference requires eval mode and one window")
-    with executed_macs(model) as count:
+    with count_macs(model) as count:
         synchronize(x.device)
         started = time.perf_counter()
         if mode == "full":
-            features = model.stage1(model.stem(x))
-            features = model.stage2(features)
-            logits = model.final(model.stage3(features)) / temperatures[2]
+            logits = static_forward(model, x, 3) / temperatures[2]
             confidence, prediction = logits.softmax(1).max(1)
             exit_index = 3
         else:
@@ -93,24 +67,32 @@ class Metrics:
         self.exit_counts = np.zeros(3, dtype=np.int64)
         self.total_flops = 0
         self.latencies = []
-        self.correct = []
+        self.recent_correct = deque(maxlen=50)
 
     def add(self, label, prediction):
         self.confusion[label, prediction.prediction] += 1
         self.exit_counts[prediction.exit - 1] += 1
         self.total_flops += prediction.flops
         self.latencies.append(prediction.latency_ms)
-        self.correct.append(label == prediction.prediction)
+        self.recent_correct.append(label == prediction.prediction)
+
+    @property
+    def samples(self):
+        return int(self.confusion.sum())
+
+    @property
+    def accuracy(self):
+        return float(np.trace(self.confusion) / self.samples) if self.samples else 0.
 
     def snapshot(self):
-        n = len(self.correct)
+        n = self.samples
         true_positive = np.diag(self.confusion)
         denominators = self.confusion.sum(0) + self.confusion.sum(1)
         f1 = np.divide(2 * true_positive, denominators,
                        out=np.zeros(len(true_positive), dtype=float), where=denominators > 0)
-        return {"samples": n, "accuracy": sum(self.correct) / n if n else 0.,
+        return {"samples": n, "accuracy": self.accuracy,
                 "macro_f1": float(f1.mean()),
-                "rolling_accuracy": sum(self.correct[-50:]) / min(n, 50) if n else 0.,
+                "rolling_accuracy": sum(self.recent_correct) / len(self.recent_correct) if n else 0.,
                 "total_flops": self.total_flops,
                 "average_flops": self.total_flops / n if n else 0.,
                 "exit_counts": self.exit_counts.tolist(),
@@ -145,7 +127,7 @@ class Simulator:
         if not saved.get("calibrated", False):
             raise ValueError("Use a checkpoint calibrated on validation")
         provenance = {"checkpoint": str(Path(checkpoint).resolve()),
-                      "checkpoint_sha256": hashlib.sha256(Path(checkpoint).read_bytes()).hexdigest(),
+                      "checkpoint_sha256": sha256(checkpoint),
                       "data_metadata": saved["data_metadata"], "device": str(next(model.parameters()).device),
                       "threads": threads, "torch_version": str(torch.__version__),
                       "synthetic_data": saved["data_metadata"]["source"] != "uci_har"}
@@ -183,15 +165,14 @@ class Simulator:
         # Rotate execution order to reduce a systematic first/last timing advantage.
         offset = len(self.records) % len(POLICIES)
         execution_order = POLICIES[offset:] + POLICIES[:offset]
+        modes = {"battery": mode, "normal": "normal", "full": "full"}
         for key in execution_order:
-            selected = mode if key == "battery" else "full" if key == "full" else "normal"
-            outputs[key] = infer(self.model, x, self.temperatures, selected)
+            outputs[key] = infer(self.model, x, self.temperatures, modes[key])
         # Commit all three observations together, only after successful inference.
         cumulative = {}
         for key in POLICIES:
             self.metrics[key].add(label, outputs[key])
-            cumulative[key] = (int(np.trace(self.metrics[key].confusion)) /
-                               len(self.metrics[key].correct))
+            cumulative[key] = self.metrics[key].accuracy
         self.mode_metrics[mode].add(label, outputs["battery"])
         record = {"step": len(self.records) + 1, "dataset_index": index,
                   "pass": self.pass_number, "label": label, "battery": float(battery), "mode": mode,

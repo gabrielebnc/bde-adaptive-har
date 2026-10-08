@@ -20,7 +20,7 @@ def launch(simulator, *, battery=80., interval_ms=250, history=150):
     root.geometry("1300x1050")
     root.minsize(1050, 850)
     executor = ThreadPoolExecutor(max_workers=1, initializer=simulator.warmup)
-    running, future, reset_pending, export_pending = False, None, False, False
+    running, future, pending_action = False, None, None
     due = 0.
     battery_value, rate = tk.DoubleVar(value=battery), tk.DoubleVar(value=1000 / interval_ms)
     status = tk.StringVar(value="Ready · Start to run real inference on shuffled test windows")
@@ -39,22 +39,17 @@ def launch(simulator, *, battery=80., interval_ms=250, history=150):
         start_button.configure(text="Pause" if running else "Start")
         status.set("Running" if running else "Paused (any in-flight window will finish)")
 
-    def reset():
-        nonlocal running, reset_pending
-        running, reset_pending = False, True
+    def request_action(action):
+        nonlocal running, pending_action
+        running, pending_action = False, action
         start_button.configure(text="Start")
-        status.set("Reset requested; waiting for any in-flight window")
-
-    def export():
-        nonlocal running, export_pending
-        running, export_pending = False, True
-        start_button.configure(text="Start")
-        status.set("Export requested; pausing after any in-flight window")
+        status.set(f"{action.title()} requested; waiting for any in-flight window")
 
     start_button = ttk.Button(controls, text="Start", command=toggle)
     start_button.pack(side="left")
-    ttk.Button(controls, text="Reset", command=reset).pack(side="left", padx=5)
-    ttk.Button(controls, text="Export results + plot", command=export).pack(side="left", padx=5)
+    ttk.Button(controls, text="Reset", command=lambda: request_action("reset")).pack(side="left", padx=5)
+    ttk.Button(controls, text="Export results + plot",
+               command=lambda: request_action("export")).pack(side="left", padx=5)
     ttk.Label(controls, text="Max windows/sec:").pack(side="left", padx=(20, 4))
     ttk.Scale(controls, from_=1, to=10, variable=rate, length=150).pack(side="left")
     power = ttk.Frame(root, padding=(12, 5))
@@ -76,7 +71,7 @@ def launch(simulator, *, battery=80., interval_ms=250, history=150):
     canvas.draw()
 
     def tick():
-        nonlocal future, due, running, reset_pending, export_pending
+        nonlocal future, due, running, pending_action
         requested.set(f"{battery_value.get():.1f}% (requested)")
         if future is not None and future.done():
             try:
@@ -93,14 +88,13 @@ def launch(simulator, *, battery=80., interval_ms=250, history=150):
             plot.update(simulator)
             canvas.draw_idle()
         if future is None:
-            if reset_pending:
+            action, pending_action = pending_action, None
+            if action == "reset":
                 simulator.reset()
-                reset_pending = False
                 plot.update(simulator)
                 canvas.draw_idle()
                 status.set("Reset · same seeded replay starts again; slider unchanged")
-            if export_pending:
-                export_pending = False
+            elif action == "export":
                 destination = (Path(__file__).resolve().parents[1] / "runs/sim" /
                                datetime.now().strftime("%Y%m%d_%H%M%S_%f"))
                 try:

@@ -52,10 +52,10 @@ def main():
                                              low_at=args.low_at, recover_at=args.recover_at,
                                              critical_below=args.critical_below)
         simulator.controller.update(args.battery)
-        simulator.warmup()
     except (OSError, ValueError) as error:
         parser.error(str(error))
     if args.headless:
+        simulator.warmup()
         from matplotlib.backends.backend_agg import FigureCanvasAgg
         from .plotting import SimulationFigure
         battery = args.battery
