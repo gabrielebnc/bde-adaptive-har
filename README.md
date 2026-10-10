@@ -186,6 +186,18 @@ but costs Exit 1 about 1.5 points. It does not reduce FLOP counts, and desktop
 PyTorch runs it about 2× slower at batch 1, so it brings no measurable gain in
 this evaluation. The supported model stays float32.
 
+| Test | Exit 1 | Exit 2 | Final | Normal 0.98/0.80 | Low-power 0.98 | Normal FLOPs/window | Weight bytes | Full-depth batch-1 median |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| float32 | 90.53% | 91.31% | 92.50% | 92.47% | 91.35% | 108,462 | 9,944 | 237 µs |
+| int8 per-tensor | 89.11% | 91.79% | 92.30% | 92.33% | 91.86% | 109,820 | 2,876 | 510 µs |
+| int8 per-channel | 88.94% | 91.69% | 92.50% | 92.47% | 91.75% | 110,983 | 3,332 | 512 µs |
+
+Temperatures and thresholds are frozen from the float32 validation selection.
+Activation ranges use 2,048 unlabeled training windows. Final int8 predictions
+agree with float32 on 99.3–99.4% of test windows, and 50.4–51.8% of windows
+leave at Exit 1 instead of 55.2%. Latency is warmed desktop wall time (Apple
+arm64 CPU, `qnnpack`, one thread), not on-device latency or energy.
+
 On a small wearable microcontroller, int8 could still benefit a lot. Integer
 kernels such as CMSIS-NN or TFLite Micro make each operation cheaper and avoid
 floating-point hardware, so early exits would cut how many operations run
