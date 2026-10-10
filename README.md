@@ -178,6 +178,21 @@ manifest. The normal 0.98/0.80 policy uses 30.51% fewer calculated FLOPs than
 the fixed full-depth reference, with a 0.034 percentage-point test accuracy
 decrease. These remain exploratory, single-seed results.
 
+## Quantization experiment
+
+Post-training int8 quantization keeps final and normal-mode test accuracy
+within about 0.2 points of float32 with a roughly 3× smaller weight payload,
+but costs Exit 1 about 1.5 points. It does not reduce FLOP counts, and desktop
+PyTorch runs it about 2× slower at batch 1, so it brings no measurable gain in
+this evaluation. The supported model stays float32.
+
+On a small wearable microcontroller, int8 could still benefit a lot. Integer
+kernels such as CMSIS-NN or TFLite Micro make each operation cheaper and avoid
+floating-point hardware, so early exits would cut how many operations run
+while int8 cuts what each one costs. Using it would need refitting temperatures
+and thresholds on validation and measuring on the device itself; neither has
+been done. See [the quantization record](docs/quantization.md).
+
 ## Reproduce training
 
 ```bash
