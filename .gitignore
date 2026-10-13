@@ -4,6 +4,9 @@ __pycache__/
 *.pyc
 data/
 /runs/
+# Private documents and local presentation materials.
 /docs/private/
+/docs/presentation/
+/docs/presentations/
 .mplconfig/
 .DS_Store
