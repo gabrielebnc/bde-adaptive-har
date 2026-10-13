@@ -90,6 +90,56 @@ Temperature scaling does not change per-exit predicted classes.
 gaps, epoch count and calibration diagnostics. The checkpoint retains complete
 training/data settings. Reproduction commands are in [the README](../README.md).
 
+## Rebuild from source
+
+All architecture, preprocessing, training and calibration code is committed.
+`train.py` initializes fresh weights and never loads the included checkpoint.
+No private documents or existing `runs/` files are required. The dataset is
+downloaded from UCI; use a fresh output directory for each rebuild.
+
+The automated command is `python scripts/reproduce_model.py`. It reads
+[the committed training recipe](../models/adaptive_har.recipe.json), runs training
+and evaluation, and writes `reproduction_check.json` beside the rebuilt checkpoint.
+The reference fingerprint includes every named parameter and BatchNorm buffer,
+using sorted names, dtype/shape headers and little-endian tensor bytes. The
+check also compares fitted temperatures, selected epoch and completed epoch count.
+`--require-exact` returns a failure status if these differ. Neither training nor
+verification loads `models/adaptive_har.pt`.
+
+The tested environment uses Python 3.12.7 on macOS arm64, CPU with two threads.
+Install [the pinned dependencies](../requirements-reproduce.txt) to use its
+package versions. Other platforms can use [requirements.txt](../requirements.txt),
+with possible differences in trained weights and metrics.
+
+A full rebuild was checked on 2026-10-13 from an isolated source export with
+the bundled checkpoint removed. All 132 model-state tensors and fitted
+temperatures matched exactly, along with validation/test metrics and selected
+adaptive policies. It selected epoch 41 after 71 epochs. This establishes
+reproduction in the tested environment; it does not promise identical numbers
+across platforms or package versions.
+
+From the repository root, after activating the environment:
+
+```bash
+python -m pip install -r requirements-reproduce.txt
+python train.py --download --data-dir data --output-dir runs/adaptive_har_retrain \
+  --device cpu --threads 2 --num-workers 0 --seed 42 \
+  --val-subjects 17 21 25 26 30 --batch-size 64 \
+  --epochs 100 --patience 30 --min-exit-gap 0.01 \
+  --lr 0.001 --weight-decay 0.0001 \
+  --loss-weights 0.10 0.20 0.70 --dropouts 0.40 0.40 0.10 \
+  --calibration-steps 100
+python scripts/evaluate_run.py --run-dir runs/adaptive_har_retrain \
+  --data-dir data --device cpu --threads 2
+```
+
+The result is `runs/adaptive_har_retrain/best.pt`, with training history,
+normalization, fitted temperatures and validation-selected policies. To use
+the rebuilt model, pass `--checkpoint runs/adaptive_har_retrain/best.pt` to
+the evaluation commands. Serialized checkpoint files can have different hashes
+because they include output paths and other run metadata; compare model tensors,
+temperatures and metrics when checking reproduction.
+
 ## Adaptive policies
 
 Confidence is `softmax(logits / temperature).max()`. Acceptance uses `>=`.

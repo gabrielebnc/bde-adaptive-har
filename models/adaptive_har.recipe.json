@@ -1,0 +1,24 @@
+{
+  "training": {
+    "device": "cpu",
+    "threads": 2,
+    "num_workers": 0,
+    "seed": 42,
+    "val_subjects": [17, 21, 25, 26, 30],
+    "batch_size": 64,
+    "epochs": 100,
+    "patience": 30,
+    "min_exit_gap": 0.01,
+    "lr": 0.001,
+    "weight_decay": 0.0001,
+    "loss_weights": [0.10, 0.20, 0.70],
+    "dropouts": [0.40, 0.40, 0.10],
+    "calibration_steps": 100
+  },
+  "reference": {
+    "model_state_sha256": "6556d7f186c240726c908ecabbe05a645bd18885f57ea74c69b9fef58ac4f50e",
+    "temperatures": [0.1707403063774109, 0.34021732211112976, 0.6085935235023499],
+    "epoch": 41,
+    "epochs_completed": 71
+  }
+}
